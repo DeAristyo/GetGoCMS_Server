@@ -101,5 +101,39 @@ module.exports = {
                 });
             }
         }
+    },
+
+    getAllUserVoucher: async (req, res) => {
+        const token = req.dataToken;
+        const data = req.body;
+
+        // let getQuery = 'SELECT * FROM user_vouchers WHERE id = ?';
+
+        try {
+            //     const getData = await query(getQuery)
+            //         .catch((err) => {
+            //             console.log(err);
+            //             throw err;
+            //         });
+
+            res.status(200).send({
+                error: false,
+                message: 'Get Voucher Data Success',
+                data: token
+            });
+        } catch (error) {
+            console.log(error);
+            if (error.status) {
+                res.status(error.status).send({
+                    error: true,
+                    message: error.message
+                });
+            } else {
+                res.status(500).send({
+                    error: true,
+                    message: error.message
+                });
+            }
+        }
     }
 };

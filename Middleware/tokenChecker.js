@@ -1,39 +1,29 @@
 const jwtVerify = require('../Helper/jwtVerify');
 const jwtSign = require('../Helper/jwtSign');
+const JWT = require('jsonwebtoken');
 
 const tokenChecker = (req, res, next) => {
-    const { accessToken, refreshToken } = req.cookies;
+    const accessToken = req.headers.accesstoken;
+    const refreshToken = req.headers.refreshtoken;
+    console.log(req.headers);
 
-    if (!accessToken) {
-        return next();
-    }
+    if (!accessToken) return res.status(406).send({ error: true, message: 'Error Token', detail: `Can't find accessToken!` });
 
     const { payload, expired } = jwtVerify(accessToken);
 
-    // For a valid access token
-    if (payload) {
-        req.user = payload;
+    if (!expired) {
         return next();
     }
 
-    // expired but valid access token
-    const { payload: refresh } =
-        expired && refreshToken ? jwtVerify(refreshToken) : { payload: null };
+    const { expired: refreshExpired } = jwtVerify(refreshToken);
 
-    if (!refresh) {
+    if (refreshExpired && expired) return res.status(406)({ error: true, message: 'Error Token', detail: 'All token Expired' });
+
+    if (!refreshExpired) {
+        const newAccessToken = jwtSign(payload);
+        req.dataToken = newAccessToken;
         return next();
     }
-
-    const newAccessToken = jwtSign(session, "5s");
-
-    res.cookie("accessToken", newAccessToken, {
-        maxAge: 8.64e7, // 1 Day
-        httpOnly: true,
-    });
-
-    req.user = jwtVerify(newAccessToken).payload;
-
-    return next();
 };
 
 module.exports = tokenChecker;

@@ -7,6 +7,7 @@ const jwtSign = require('../Helper/jwtSign');
 module.exports = {
     login: async (req, res) => {
         const data = req.body;
+        console.log(data);
 
         const loginQuery = `SELECT * FROM user WHERE phone = ?`;
 
@@ -16,6 +17,8 @@ module.exports = {
                     console.log(err);
                     throw err;
                 });
+
+            if (!login) throw { error: true, message: 'User not found' };
 
             let passwordValidation = await bcrypt.compare(data.password, login[0].password)
                 .catch((err) => {
@@ -52,6 +55,7 @@ module.exports = {
             }
 
         } catch (error) {
+            console.log(error);
             if (error.status) {
                 res.status(error.status).send({
                     error: true,
