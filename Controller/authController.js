@@ -10,9 +10,16 @@ module.exports = {
         console.log(data);
 
         const loginQuery = `SELECT * FROM user WHERE phone = ?`;
+        const getQuery = 'SELECT *, user_voucher.id as iduvoucher FROM user_voucher LEFT JOIN vouchers ON user_voucher.voucher_id = vouchers.id WHERE user_id = ?';
 
         try {
             let login = await query(loginQuery, [data.phone])
+                .catch((err) => {
+                    console.log(err);
+                    throw err;
+                });
+
+            let userVoucher = await query(getQuery, login[0].id)
                 .catch((err) => {
                     console.log(err);
                     throw err;
@@ -26,11 +33,11 @@ module.exports = {
                     throw err;
                 });
 
-            const accessToken = jwtSign(
+            const accesstoken = jwtSign(
                 { phone: login[0].phone, name: login[0].name }, '1d'
             );
 
-            const refreshToken = jwtSign(
+            const refreshtoken = jwtSign(
                 { phone: login[0].phone }, '1y'
             );
 
@@ -42,9 +49,10 @@ module.exports = {
                     data: {
                         phone: login[0].phone,
                         name: login[0].name,
-                        accessToken,
-                        refreshToken
-                    }
+                        accesstoken,
+                        refreshtoken
+                    },
+                    voucher: userVoucher
                 });
             } else {
                 res.status(400).send({
@@ -124,15 +132,46 @@ module.exports = {
         }
     },
 
-    logout: (req, res) => {
-        res.cookie("accessToken", "", {
-            maxAge: 0,
-            httpOnly: true,
-        });
+    relog: async (req, res) => {
+        const dataToken = req.dataToken;
 
-        res.cookie("refreshToken", "", {
-            maxAge: 0,
-            httpOnly: true,
-        });
+        const loginQuery = `SELECT * FROM user WHERE phone = ?`;
+
+        try {
+            let login = await query(loginQuery, [dataToken.phone])
+                .catch((err) => {
+                    console.log(err);
+                    throw err;
+                });
+
+            if (!login) throw { error: true, message: 'User not found' };
+
+            const accessToken = jwtSign(
+                { phone: login[0].phone, name: login[0].name }, '1d'
+            );
+
+            res.status(200).send({
+                error: false,
+                message: 're-Login Successful',
+                data: {
+                    phone: login[0].phone,
+                    name: login[0].name,
+                    accessToken,
+                }
+            });
+        } catch (error) {
+            console.log(error);
+            if (error.status) {
+                res.status(error.status).send({
+                    error: true,
+                    message: error.message
+                });
+            } else {
+                res.status(500).send({
+                    error: true,
+                    message: error.message
+                });
+            }
+        }
     }
 };
